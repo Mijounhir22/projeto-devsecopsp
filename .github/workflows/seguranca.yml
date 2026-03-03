@@ -23,4 +23,4 @@ jobs:
       - name: 3. Horusec (SQL Injection e LGPD)
         run: |
           curl -fsSL https://raw.githubusercontent.com/ZupIT/horusec/master/deployments/scripts/install.sh | bash
-         horusec start -p="./" -e="true" --log-level="debug"
+          horusec start -p="./" -e="true"
