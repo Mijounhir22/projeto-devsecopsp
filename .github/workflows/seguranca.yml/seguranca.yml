@@ -1,0 +1,23 @@
+name: Esteira DevSecOps - Snyk
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  analise_seguranca:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. Checkout do Repositorio
+        uses: actions/checkout@v4
+
+      - name: 2. Gitleaks (Scanner de Credenciais)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 3. Snyk (Scanner de Vulnerabilidades)
+        uses: snyk/actions/python-3.10@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
