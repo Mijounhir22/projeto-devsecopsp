@@ -2,7 +2,7 @@ name: Esteira DevSecOps - Snyk
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "principal" ]
 
 jobs:
   analise_seguranca:
