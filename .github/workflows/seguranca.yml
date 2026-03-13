@@ -20,5 +20,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 3. Horusec (Vulnerabilidades e LGPD)
-        run: sh scan.sh
+      - name: 3. Horusec (Analise de Vulnerabilidades)
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/ZupIT/horusec/master/deployments/scripts/install.sh | bash
+          ./horusec start -p="./" -e="true"
