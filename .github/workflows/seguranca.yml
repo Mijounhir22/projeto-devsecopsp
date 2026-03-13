@@ -1,4 +1,4 @@
-name: Esteira DevSecOps - Analise de Seguranca
+name: Esteira DevSecOps - Analise Final
 
 on:
   push:
@@ -12,14 +12,16 @@ jobs:
 
     steps:
       - name: 1. Baixando o Codigo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: 2. Gitleaks (Procurar Senhas Expostas)
+      - name: 2. Gitleaks (Senhas e Chaves)
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 3. Horusec (SQL Injection e LGPD)
-        run: curl -fsSL https://raw.githubusercontent.com/ZupIT/horusec/master/deployments/scripts/install.sh | bash && ./horusec start -p="./" -e="true"
+      - name: 3. Horusec (Vulnerabilidades e LGPD)
+        uses: fveloso/horusec-action@v1.0.2
+        with:
+          horusec-arguments: start -p="./" -e="true"
