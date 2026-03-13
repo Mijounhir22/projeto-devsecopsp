@@ -1,26 +1,24 @@
-name: Scan de Conformidade LGPD
+name: Esteira DevSecOps LGPD
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
     branches: [ "main" ]
 
 jobs:
   analise_seguranca:
     runs-on: ubuntu-latest
     steps:
-      - name: 1. Baixando o Codigo
+      - name: 1. Checkout do Repositorio
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: 2. Gitleaks (Senhas e Chaves)
+      - name: 2. Gitleaks (Scanner de Credenciais)
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 3. Horusec (Analise de Vulnerabilidades)
+      - name: 3. Horusec (Scanner de Vulnerabilidades)
         run: |
           curl -fsSL https://raw.githubusercontent.com/ZupIT/horusec/master/deployments/scripts/install.sh | bash
-          ./horusec start -p="./" -e="true"
+          ./horusec start -p="./" -e="true" 
