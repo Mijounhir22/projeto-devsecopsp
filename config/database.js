@@ -1,10 +1,12 @@
-// Antes: password: "admin123"
-// Agora: O sistema busca a senha configurada no servidor, sem expô-la no Git.
+// Remediação: Abstração de credenciais via Variáveis de Ambiente
 const dbConfig = {
     host: "localhost",
     user: "root",
+    // A senha real não fica no código. O sistema busca no ambiente ou usa um fallback seguro.
     password: process.env.DB_PASSWORD || "configuracao_local_segura",
     database: "sistema_startup"
 };
 
-console.log("Conectado ao banco de dados com segurança.");
+console.log("Infraestrutura de banco de dados carregada com sucesso.");
+
+module.exports = dbConfig;
