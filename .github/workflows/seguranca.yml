@@ -23,15 +23,28 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 3. Snyk (Scanner de Vulnerabilidades)
-        uses: snyk/actions/python-3.10@master
         continue-on-error: true
+        uses: snyk/actions/python-3.10@master
         with:
-          # O comando abaixo gera o arquivo visual para o GitHub
-          args: --sarif-file-output=snyk.sarif --all-projects --severity-threshold=high
+          args: --sarif-file-output=snyk.sarif --all-projects
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-      - name: 4. Upload do Relatorio para aba Security
+      - name: 4. Gerar Relatorio HTML Profissional
+        continue-on-error: true
+        run: |
+          npm install -g snyk-to-html
+          snyk test --json | snyk-to-html -o resultado_final.html
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      - name: 5. Upload do Relatorio para aba Security
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: snyk.sarif
+
+      - name: 6. Disponibilizar Relatorio HTML para Download
+        uses: actions/upload-artifact@v4
+        with:
+          name: Relatorio-Executivo-Seguranca
+          path: resultado_final.html
