@@ -1,4 +1,4 @@
-name: Esteira DevSecOps - Snyk
+name: Esteira DevSecOps - Relatorio Profissional
 
 on:
   push:
@@ -6,7 +6,6 @@ on:
 
 jobs:
   analise_seguranca:
-    # Permissões necessárias para que o relatório apareça na aba Security
     permissions:
       security-events: write
       actions: read
@@ -22,29 +21,32 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 3. Snyk (Scanner de Vulnerabilidades)
+      - name: 3. Gerar Dados para Relatorios (Snyk)
         continue-on-error: true
         uses: snyk/actions/python-3.10@master
         with:
+          # Gera o arquivo SARIF para a aba Security
           args: --sarif-file-output=snyk.sarif --all-projects
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-      - name: 4. Gerar Relatorio HTML Profissional
+      - name: 4. Gerar Dashboard HTML com Graficos
         continue-on-error: true
         run: |
           npm install -g snyk-to-html
-          snyk test --json | snyk-to-html -o resultado_final.html
+          # Força a geração do JSON mesmo com vulnerabilidades
+          snyk test --json --all-projects > snyk_results.json || true
+          snyk-to-html -i snyk_results.json -o dashboard_seguranca.html
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-      - name: 5. Upload do Relatorio para aba Security
+      - name: 5. Ativar Aba Security (Interface Visual)
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: snyk.sarif
 
-      - name: 6. Disponibilizar Relatorio HTML para Download
+      - name: 6. Upload do Artefato para o TCC
         uses: actions/upload-artifact@v4
         with:
-          name: Relatorio-Executivo-Seguranca
-          path: resultado_final.html
+          name: Relatorio-Visual-Graficos
+          path: dashboard_seguranca.html
