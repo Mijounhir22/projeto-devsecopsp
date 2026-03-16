@@ -1,4 +1,4 @@
-name: Esteira DevSecOps - Diagnostico Completo
+name: Esteira DevSecOps - Auditoria Completa UNDB
 
 on:
   push:
@@ -6,51 +6,57 @@ on:
 
 jobs:
   analise_seguranca:
+    # Permissões necessárias para ativar a aba Security do GitHub
     permissions:
       security-events: write
       actions: read
       contents: read
     runs-on: ubuntu-latest
+    
     steps:
       - name: 1. Checkout do Repositorio
         uses: actions/checkout@v4
 
       - name: 2. Gitleaks (Scanner de Credenciais)
         uses: gitleaks/gitleaks-action@v2
-        continue-on-error: true # Continua mesmo se achar senhas
+        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 3. Instalar Dependencias de Relatorio
+      - name: 3. Instalar Dependencias de Relatorio (Node.js)
         run: npm install -g snyk-to-html
 
-      - name: 4. Roda Snyk e Gera Dados (JSON e SARIF)
-        continue-on-error: true # Continua para gerar os arquivos mesmo com falhas
+      - name: 4. Scanner Snyk (Vulnerabilidades de Bibliotecas)
+        # Usamos continue-on-error para garantir que o upload do relatório ocorra mesmo com falhas
+        continue-on-error: true 
         uses: snyk/actions/python-3.10@master
         with:
+          # Gera simultaneamente o arquivo para a aba Security e para o Dashboard HTML
           args: --sarif-file-output=snyk.sarif --json-file-output=snyk_results.json --all-projects --severity-threshold=high
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
       - name: 5. Gerar Dashboard HTML com Graficos
         continue-on-error: true
-        run: snyk-to-html -i snyk_results.json -o dashboard_seguranca.html
+        run: |
+          # Converte o JSON em HTML profissional para sua banca
+          snyk-to-html -i snyk_results.json -o dashboard_seguranca.html
 
-      - name: 6. Upload para Aba Security (Relatorio Visual Nativo)
+      - name: 6. Ativar Interface Visual (Aba Security)
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: snyk.sarif
 
-      - name: 7. Disponibilizar Relatorio HTML para Download (Artefatos)
+      - name: 7. Disponibilizar Relatorio para Download (Artefatos)
         uses: actions/upload-artifact@v4
         with:
-          name: Relatorio-Visual-Graficos
+          name: Relatorio-Executivo-Seguranca
           path: dashboard_seguranca.html
 
-      - name: 8. Verificacao Final (Status da Esteira)
-        # Esta etapa serve apenas para marcar o "X" vermelho no final
-        # sem impedir que as etapas anteriores gerassem os relatórios.
+      - name: 8. Verificacao Final (Status da Pipeline)
+        # Esta etapa fará o GitHub mostrar o "X" vermelho se houver falhas críticas
         run: |
-          echo "Finalizando diagnostico. Verifique os artefatos e a aba Security."
-          # Se o arquivo JSON existe e tem erros, podemos avisar aqui
-          ls -l dashboard_seguranca.html
+          echo "Finalizando processo de auditoria."
+          snyk test --all-projects --severity-threshold=high
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
