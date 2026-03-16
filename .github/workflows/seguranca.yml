@@ -16,11 +16,11 @@ jobs:
         continue-on-error: true  # Isso permite que a esteira continue para o Snyk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          
+
       - name: 3. Snyk (Scanner de Vulnerabilidades)
         uses: snyk/actions/python-3.10@master
-        continue-on-error: true
+        # Remova o continue-on-error apenas desta etapa se quiser que o resultado final seja VERMELHO
         with:
-          args: --all-projects --skip-unresolved
+          args: --all-projects --severity-threshold=high
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
