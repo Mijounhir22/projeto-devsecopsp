@@ -6,6 +6,11 @@ on:
 
 jobs:
   analise_seguranca:
+    # Permissões necessárias para que o relatório apareça na aba Security
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
     runs-on: ubuntu-latest
     steps:
       - name: 1. Checkout do Repositorio
@@ -13,14 +18,20 @@ jobs:
 
       - name: 2. Gitleaks (Scanner de Credenciais)
         uses: gitleaks/gitleaks-action@v2
-        continue-on-error: true  # Isso permite que a esteira continue para o Snyk
+        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 3. Snyk (Scanner de Vulnerabilidades)
         uses: snyk/actions/python-3.10@master
-        # Remova o continue-on-error apenas desta etapa se quiser que o resultado final seja VERMELHO
+        continue-on-error: true
         with:
-          args: --all-projects --severity-threshold=high
+          # O comando abaixo gera o arquivo visual para o GitHub
+          args: --sarif-file-output=snyk.sarif --all-projects --severity-threshold=high
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      - name: 4. Upload do Relatorio para aba Security
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: snyk.sarif
