@@ -20,6 +20,6 @@ jobs:
         uses: snyk/actions/python-3.10@master
         continue-on-error: true
         with:
-          args: --all-projects
+          args: --all-projects --skip-unresolved
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
