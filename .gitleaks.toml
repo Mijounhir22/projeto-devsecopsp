@@ -1,4 +1,5 @@
 [[rules]]
+id = "tcc-undb-leak"
 description = "Vazamento Critico Detectado - TCC UNDB"
 regex = '''(?i)AWS_SECRET_KEY|AKIA|wJalrXUtnFEMI'''
 severity = "error"
