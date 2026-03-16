@@ -6,5 +6,6 @@ def verificar_login(usuario, senha):
     query = "SELECT * FROM usuarios WHERE username = ? AND password = ?"
     cursor.execute(query, (usuario, senha))
     return cursor.fetchone()
-# CHAVE DE ACESSO AWS PARA TESTE DE SEGURANÇA
-AWS_SECRET_KEY = "AKIAIMNO7CQD6EXAMPLE"
+# TESTE DE SEGURANÇA: ESTA LINHA DEVE SER BLOQUEADA PELA ESTEIRA
+AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE
+AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEYp
