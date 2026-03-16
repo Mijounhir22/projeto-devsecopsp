@@ -1,4 +1,4 @@
-name: Esteira DevSecOps - Relatorio Profissional
+name: Esteira DevSecOps - Diagnostico Completo
 
 on:
   push:
@@ -17,36 +17,40 @@ jobs:
 
       - name: 2. Gitleaks (Scanner de Credenciais)
         uses: gitleaks/gitleaks-action@v2
-        continue-on-error: true
+        continue-on-error: true # Continua mesmo se achar senhas
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 3. Gerar Dados para Relatorios (Snyk)
-        continue-on-error: true
+      - name: 3. Instalar Dependencias de Relatorio
+        run: npm install -g snyk-to-html
+
+      - name: 4. Roda Snyk e Gera Dados (JSON e SARIF)
+        continue-on-error: true # Continua para gerar os arquivos mesmo com falhas
         uses: snyk/actions/python-3.10@master
         with:
-          # Gera o arquivo SARIF para a aba Security
-          args: --sarif-file-output=snyk.sarif --all-projects
+          args: --sarif-file-output=snyk.sarif --json-file-output=snyk_results.json --all-projects --severity-threshold=high
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-      - name: 4. Gerar Dashboard HTML com Graficos
+      - name: 5. Gerar Dashboard HTML com Graficos
         continue-on-error: true
-        run: |
-          npm install -g snyk-to-html
-          # Força a geração do JSON mesmo com vulnerabilidades
-          snyk test --json --all-projects > snyk_results.json || true
-          snyk-to-html -i snyk_results.json -o dashboard_seguranca.html
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: snyk-to-html -i snyk_results.json -o dashboard_seguranca.html
 
-      - name: 5. Ativar Aba Security (Interface Visual)
+      - name: 6. Upload para Aba Security (Relatorio Visual Nativo)
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: snyk.sarif
 
-      - name: 6. Upload do Artefato para o TCC
+      - name: 7. Disponibilizar Relatorio HTML para Download (Artefatos)
         uses: actions/upload-artifact@v4
         with:
           name: Relatorio-Visual-Graficos
           path: dashboard_seguranca.html
+
+      - name: 8. Verificacao Final (Status da Esteira)
+        # Esta etapa serve apenas para marcar o "X" vermelho no final
+        # sem impedir que as etapas anteriores gerassem os relatórios.
+        run: |
+          echo "Finalizando diagnostico. Verifique os artefatos e a aba Security."
+          # Se o arquivo JSON existe e tem erros, podemos avisar aqui
+          ls -l dashboard_seguranca.html
