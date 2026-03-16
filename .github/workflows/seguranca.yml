@@ -15,8 +15,7 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          args: --verbose --redact # Mostra detalhes e oculta a senha no log
+        # Removi o bloco 'with' que causava o erro na imagem 9e15b2
 
       - name: 3. Snyk (Scanner de Vulnerabilidades)
         uses: snyk/actions/python-3.10@master
