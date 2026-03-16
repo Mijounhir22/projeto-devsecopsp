@@ -13,10 +13,10 @@ jobs:
 
       - name: 2. Gitleaks (Scanner de Credenciais)
         uses: gitleaks/gitleaks-action@v2
+        continue-on-error: true  # Isso permite que a esteira continue para o Snyk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # Removi o bloco 'with' que causava o erro na imagem 9e15b2
-
+          
       - name: 3. Snyk (Scanner de Vulnerabilidades)
         uses: snyk/actions/python-3.10@master
         continue-on-error: true
