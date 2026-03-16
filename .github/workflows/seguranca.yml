@@ -1,62 +1,72 @@
-name: Esteira DevSecOps - Auditoria Completa UNDB
+name: Esteira DevSecOps Otimizada - UNDB
 
 on:
   push:
     branches: ["main", "principal"]
 
 jobs:
-  analise_seguranca:
-    # Permissões necessárias para ativar a aba Security do GitHub
-    permissions:
-      security-events: write
-      actions: read
-      contents: read
+  # JOB 1: Scanner de Credenciais (Roda em paralelo)
+  vazamento_dados:
+    name: Scanner de Segredos
     runs-on: ubuntu-latest
-    
     steps:
-      - name: 1. Checkout do Repositorio
+      - name: Checkout
         uses: actions/checkout@v4
-
-      - name: 2. Gitleaks (Scanner de Credenciais)
+      - name: Gitleaks
         uses: gitleaks/gitleaks-action@v2
         continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 3. Instalar Dependencias de Relatorio (Node.js)
+  # JOB 2: Scanner de Dependências e Relatórios (O coração do TCC)
+  vulnerabilidades:
+    name: Auditoria de Bibliotecas
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. Checkout do Repositorio
+        uses: actions/checkout@v4
+
+      - name: 2. Cache de Dependencias (Acelera a Esteira)
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: 3. Instalar Ferramentas de Relatorio
         run: npm install -g snyk-to-html
 
-      - name: 4. Scanner Snyk (Vulnerabilidades de Bibliotecas)
-        # Usamos continue-on-error para garantir que o upload do relatório ocorra mesmo com falhas
+      - name: 4. Scanner Snyk (Vulnerabilidades Reais)
         continue-on-error: true 
         uses: snyk/actions/python-3.10@master
         with:
-          # Gera simultaneamente o arquivo para a aba Security e para o Dashboard HTML
           args: --sarif-file-output=snyk.sarif --json-file-output=snyk_results.json --all-projects --severity-threshold=high
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
-      - name: 5. Gerar Dashboard HTML com Graficos
+      - name: 5. Gerar Dashboard HTML Profissional
         continue-on-error: true
-        run: |
-          # Converte o JSON em HTML profissional para sua banca
-          snyk-to-html -i snyk_results.json -o dashboard_seguranca.html
+        run: snyk-to-html -i snyk_results.json -o dashboard_seguranca.html
 
-      - name: 6. Ativar Interface Visual (Aba Security)
+      - name: 6. Upload para Aba Security
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: snyk.sarif
 
-      - name: 7. Disponibilizar Relatorio para Download (Artefatos)
+      - name: 7. Disponibilizar Dashboard para Download
         uses: actions/upload-artifact@v4
         with:
-          name: Relatorio-Executivo-Seguranca
-          path: dashboard_seguranca.html
+          name: Relatorio-Visual-Graficos
+          path: dashboard_security.html
 
-      - name: 8. Verificacao Final (Status da Pipeline)
-        # Esta etapa fará o GitHub mostrar o "X" vermelho se houver falhas críticas
+      - name: 8. Verificacao de Falhas Criticas
         run: |
-          echo "Finalizando processo de auditoria."
+          echo "Validando segurança do repositório..."
           snyk test --all-projects --severity-threshold=high
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
