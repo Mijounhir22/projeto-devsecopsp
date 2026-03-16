@@ -19,5 +19,7 @@ jobs:
       - name: 3. Snyk (Scanner de Vulnerabilidades)
         uses: snyk/actions/python-3.10@master
         continue-on-error: true
+        with:
+          args: --all-projects
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
