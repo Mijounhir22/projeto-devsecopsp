@@ -5,3 +5,4 @@ django==1.11.29
 jinja2==2.10
 requests==2.6.0
 paramiko==2.4.0
+# Teste de auditoria pós-formatação - 2026
