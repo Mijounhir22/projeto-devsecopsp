@@ -2,7 +2,7 @@ name: Auditoria de Bibliotecas
 on: [push]
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true # Resolve avisos de Node.js
 
 jobs:
   vulnerabilidades:
@@ -21,35 +21,37 @@ jobs:
       - name: 3. Instalar Ferramentas de Relatorio
         run: npm install -g snyk snyk-to-html bandit
 
-      - name: 4. Gerar Relatórios e Link Direto (Snyk Monitor)
+      - name: 4. Scanner Snyk e Link Oficial
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
-          # Este comando cria o link que você quer
+          # Gera o link para o site do Snyk
           snyk monitor --all-projects
-          # Gera o arquivo para o ZIP (caso precise de backup)
-          snyk test --json | snyk-to-html -o relatorio_snyk.html
-          bandit -r . -f html -o relatorio_bandit.html
+          # Gera o arquivo bruto para conversão
+          snyk test --json > snyk_results.json
 
-      - name: 5. Converter JSON para HTML Visual
+      - name: 5. Gerar Dashboard HTML Profissional
         continue-on-error: true
-        run: snyk-to-html -i snyk_results.json -o relatorio_snyk.html || true
+        run: |
+          # Transforma o JSON no Dashboard colorido que você quer
+          snyk-to-html -i snyk_results.json -o dashboard_seguranca.html
 
-      - name: 6. Disponibilizar Relatórios para Download (Formato ZIP)
+      - name: 6. Auditoria de Código Python (Bandit)
+        continue-on-error: true
+        run: bandit -r . -f html -o relatorio_bandit.html
+
+      - name: 7. Disponibilizar Dashboard para Download
         uses: actions/upload-artifact@v4
         with:
-          name: Relatorio-Seguranca-TCC
+          name: Relatorio-Visual-Graficos
           path: |
-            relatorio_snyk.html
+            dashboard_seguranca.html
             relatorio_bandit.html
 
-      - name: 7. Status Final e Links Rápidos
-        continue-on-error: true
+      - name: 8. Verificacao de Falhas Criticas (Status do Pipeline)
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        run: snyk test --all-projects
-
-      - name: 8. Limpeza de Ambiente e Log Final
-        if: always()
-        run: echo "Análise concluída. Verifique o link na Etapa 4!"
+        run: |
+          echo "Validando segurança final do repositório..."
+          snyk test --all-projects --severity-threshold=high
