@@ -1,12 +1,12 @@
 name: Auditoria de Bibliotecas
 on: [push]
 
-# Resolve os avisos amarelos de Node.js obsoleto no GitHub Actions
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true # Resolve os avisos de Node.js
 
 jobs:
   vulnerabilidades:
+    name: Esteira de Segurança DevSecOps
     runs-on: ubuntu-latest
     steps:
       - name: 1. Checkout do Repositorio
@@ -19,25 +19,23 @@ jobs:
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
 
       - name: 3. Instalar Ferramentas de Relatorio
-        run: |
-          npm install -g snyk snyk-to-html bandit
+        run: npm install -g snyk snyk-to-html bandit
 
       - name: 4. Gerar Relatórios e Link Oficial (Snyk Monitor)
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
-          # Gera o Link Oficial no dashboard do Snyk (O link que você queria)
+          # Gera o Link Oficial no site do Snyk
           snyk monitor --all-projects
-          # Gera os dados brutos para o relatório HTML local
+          # Gera os dados para o HTML visual
           snyk test --json > snyk_results.json
-          # Executa a análise de código Python com Bandit
+          # Analisa o código Python com Bandit
           bandit -r . -f html -o relatorio_bandit.html
 
       - name: 5. Converter JSON para HTML Visual
         continue-on-error: true
-        run: |
-          snyk-to-html -i snyk_results.json -o relatorio_snyk.html
+        run: snyk-to-html -i snyk_results.json -o relatorio_snyk.html
 
       - name: 6. Disponibilizar Relatórios para Download
         uses: actions/upload-artifact@v4
@@ -47,17 +45,17 @@ jobs:
             relatorio_snyk.html
             relatorio_bandit.html
 
-      - name: 7. Status Final da Pipeline
+      - name: 7. Verificacao Final de Falhas Criticas
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
-          echo "Validando segurança crítica do repositório ConveFlow..."
+          echo "Validando segurança do projeto ConveFlow..."
           snyk test --all-projects --severity-threshold=high
 
       - name: 8. Limpeza de Ambiente e Log Final
         if: always()
         run: |
-          echo "Removendo arquivos temporários de auditoria..."
+          echo "Removendo ficheiros temporários..."
           rm -f snyk_results.json
-          echo "Análise concluída com sucesso em $(date)"
+          echo "Esteira finalizada com sucesso!"
