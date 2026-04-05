@@ -17,31 +17,30 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: 3. Preparar Ambiente e Ferramentas
+      - name: 3. Preparar Ferramentas
         run: |
           npm install -g snyk snyk-to-html
           pip install bandit django paramiko || true
 
-      - name: 4. Scanner Snyk (Gerar Dados do Dashboard)
+      - name: 4. Scanner Snyk (Focado em Python)
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
-          # O '|| true' garante que o arquivo JSON seja salvo mesmo se o Snyk achar falhas
-          snyk test --json --skip-unresolved > snyk_results.json || true
+          # Adicionamos o --file para ele não se perder no package.json
+          snyk test --file=requirements.txt --json --skip-unresolved > snyk_results.json || echo "{}" > snyk_results.json
 
-      - name: 5. Geração do Dashboard HTML (Interface Visual)
+      - name: 5. Geração do Dashboard HTML
         if: always()
         run: |
-          # Comando para criar o HTML que abre no Chrome
-          snyk-to-html -i snyk_results.json -o relatorio_visual_snyk.html || echo "Erro na conversao"
+          # Forçamos a criação do HTML para sua apresentação
+          snyk-to-html -i snyk_results.json -o relatorio_visual_snyk.html || echo "Erro na conversão"
 
       - name: 6. Scanner SAST (Bandit)
         continue-on-error: true
-        run: |
-          bandit -r . -f html -o relatorio_bandit_tcc.html || true
+        run: bandit -r . -f html -o relatorio_bandit_tcc.html || true
 
-      - name: 7. Disponibilizar Relatórios para Download (Artefatos)
+      - name: 7. Disponibilizar Relatórios para Download
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -54,6 +53,6 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
-          echo "Validando segurança... O X VERMELHO aparecerá se houver falhas críticas."
-          # Este comando sem 'continue-on-error' trava a esteira e gera o X vermelho
+          echo "Validando segurança... O X VERMELHO aparecerá agora."
+          # Analisa tudo e falha se houver risco alto
           snyk test --all-projects --severity-threshold=high --skip-unresolved
