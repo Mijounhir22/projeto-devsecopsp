@@ -54,17 +54,19 @@ jobs:
         continue-on-error: true
         run: snyk-to-html -i snyk_results.json -o dashboard_seguranca.html
 
-      - name: 6. Upload para Aba Security (Interface do GitHub)
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: snyk.sarif
+      - name: 6. Gerar Relatórios para o TCC
+        run: |
+         bandit -r . -f html -o relatorio_bandit.html
+         snyk test --json | snyk-to-html -o relatorio_snyk.html
+        continue-on-error: true
 
-      - name: 7. Disponibilizar Dashboard para Download (Artefatos)
+      - name: 7. Disponibilizar Relatórios para Download
         uses: actions/upload-artifact@v4
         with:
-          name: Relatorio-Visual-Graficos
-          path: dashboard_seguranca.html
-
+         name: Relatorio-Seguranca-TCC
+         path: |
+          relatorio_snyk.html
+          relatorio_bandit.html
       - name: 8. Verificacao de Falhas Criticas (Status da Pipeline)
         # Esta etapa gera o "X" vermelho se as bibliotecas forem perigosas
         run: |
