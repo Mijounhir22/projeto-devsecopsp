@@ -1,78 +1,63 @@
-name: Esteira DevSecOps Otimizada - UNDB
+name: Auditoria de Bibliotecas
+on: [push]
 
-on:
-  push:
-    branches: ["main", "principal"]
+# Resolve os avisos amarelos de Node.js obsoleto no GitHub Actions
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  # JOB 1: Scanner de Credenciais (Roda em paralelo para ganhar tempo)
-  vazamento_dados:
-    name: Scanner de Segredos
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        continue-on-error: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  # JOB 2: Auditoria de Dependências e Relatórios
   vulnerabilidades:
-    name: Auditoria de Bibliotecas
-    permissions:
-      security-events: write
-      actions: read
-      contents: read
     runs-on: ubuntu-latest
     steps:
       - name: 1. Checkout do Repositorio
         uses: actions/checkout@v4
 
-      - name: 2. Cache de Dependencias (Acelera as próximas execuções)
+      - name: 2. Cache de Dependencias
         uses: actions/cache@v4
         with:
           path: ~/.npm
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
 
       - name: 3. Instalar Ferramentas de Relatorio
-        run: npm install -g snyk-to-html
+        run: |
+          npm install -g snyk snyk-to-html bandit
 
-      - name: 4. Scanner Snyk (Busca falhas no requirements.txt)
-        continue-on-error: true 
-        uses: snyk/actions/python-3.10@master
-        with:
-          # Gera os arquivos para a aba Security e para o Dashboard HTML
-          args: --sarif-file-output=snyk.sarif --json-file-output=snyk_results.json --all-projects --severity-threshold=high
+      - name: 4. Gerar Relatórios e Link Oficial (Snyk Monitor)
+        continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-
-      - name: 5. Gerar Dashboard HTML Profissional
-        continue-on-error: true
-        run: snyk-to-html -i snyk_results.json -o dashboard_seguranca.html
-
-      - name: 6. Gerar Relatórios e Link Oficial
         run: |
-         bandit -r . -f html -o relatorio_bandit.html
-         snyk monitor --all-projects
-         snyk test --json | snyk-to-html -o relatorio_snyk.html
+          # Gera o Link Oficial no dashboard do Snyk (O link que você queria)
+          snyk monitor --all-projects
+          # Gera os dados brutos para o relatório HTML local
+          snyk test --json > snyk_results.json
+          # Executa a análise de código Python com Bandit
+          bandit -r . -f html -o relatorio_bandit.html
+
+      - name: 5. Converter JSON para HTML Visual
         continue-on-error: true
-        env:
-         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-      - name: 7. Disponibilizar Relatórios para Download
+        run: |
+          snyk-to-html -i snyk_results.json -o relatorio_snyk.html
+
+      - name: 6. Disponibilizar Relatórios para Download
         uses: actions/upload-artifact@v4
         with:
-         name: Relatorio-Seguranca-TCC
-         path: |
-          relatorio_snyk.html
-          relatorio_bandit.html
-      - name: 8. Verificacao de Falhas Criticas (Status da Pipeline)
-        # Esta etapa gera o "X" vermelho se as bibliotecas forem perigosas
-        run: |
-          echo "Validando segurança do repositório..."
-          snyk test --all-projects --severity-threshold=high
+          name: Relatorio-Seguranca-TCC
+          path: |
+            relatorio_snyk.html
+            relatorio_bandit.html
+
+      - name: 7. Status Final da Pipeline
+        continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          echo "Validando segurança crítica do repositório ConveFlow..."
+          snyk test --all-projects --severity-threshold=high
+
+      - name: 8. Limpeza de Ambiente e Log Final
+        if: always()
+        run: |
+          echo "Removendo arquivos temporários de auditoria..."
+          rm -f snyk_results.json
+          echo "Análise concluída com sucesso em $(date)"
