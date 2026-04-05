@@ -27,20 +27,21 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
-          # O segredo é o comando abaixo gerar o JSON mesmo com erro (usando o || true)
+          # O '|| true' garante que o arquivo JSON seja salvo mesmo se o Snyk achar falhas
           snyk test --json --skip-unresolved > snyk_results.json || true
 
-      - name: 5. Geração do Dashboard HTML (Visual Profissional)
+      - name: 5. Geração do Dashboard HTML (Interface Visual)
         if: always()
         run: |
-          # Transforma os dados no relatório que abre no Google Chrome
-          snyk-to-html -i snyk_results.json -o relatorio_visual_snyk.html || echo "Erro na conversão"
+          # Comando para criar o HTML que abre no Chrome
+          snyk-to-html -i snyk_results.json -o relatorio_visual_snyk.html || echo "Erro na conversao"
 
       - name: 6. Scanner SAST (Bandit)
         continue-on-error: true
-        run: bandit -r . -f html -o relatorio_bandit_tcc.html || true
+        run: |
+          bandit -r . -f html -o relatorio_bandit_tcc.html || true
 
-      - name: 7. Disponibilizar Relatórios para Download
+      - name: 7. Disponibilizar Relatórios para Download (Artefatos)
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -49,9 +50,10 @@ jobs:
             relatorio_visual_snyk.html
             relatorio_bandit_tcc.html
 
-      - name: 8. Verificação de Falhas Críticas (Status do Pipeline)
+      - name: 8. Verificação Final (Onde o X Vermelho aparece)
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
-          echo "Validando regras... O X VERMELHO aparecerá se houver insegurança."
+          echo "Validando segurança... O X VERMELHO aparecerá se houver falhas críticas."
+          # Este comando sem 'continue-on-error' trava a esteira e gera o X vermelho
           snyk test --all-projects --severity-threshold=high --skip-unresolved
