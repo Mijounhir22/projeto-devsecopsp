@@ -2,8 +2,7 @@ name: Auditoria de Bibliotecas
 on: [push]
 
 env:
-  # Resolve avisos de versão do Node.js nos logs
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true 
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   esteira-tcc:
@@ -13,44 +12,43 @@ jobs:
       - name: 1. Checkout do Repositorio
         uses: actions/checkout@v4
 
-      - name: 2. Configuração de Cache
-        uses: actions/cache@v4
+      - name: 2. Configurar Python
+        uses: actions/setup-python@v5
         with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          python-version: '3.10'
 
-      - name: 3. Instalação das Ferramentas de Auditoria
+      - name: 3. Instalar Dependencias do Projeto
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt || echo "Aviso: Algumas dependencias falharam, mas a esteira continuará."
+
+      - name: 4. Instalar Ferramentas de Auditoria
         run: npm install -g snyk snyk-to-html
 
-      - name: 4. Execução do Scanner Snyk (Gerar Dados)
+      - name: 5. Execução do Scanner Snyk (Gerar Dashboard)
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
-          # O comando '--skip-unresolved' permite gerar o JSON mesmo com erros de pacotes
-          snyk test --json --skip-unresolved > snyk_results.json
-          snyk monitor --all-projects --skip-unresolved
+          # O '--command=python3' ajuda o Snyk a entender o ambiente Python
+          snyk test --json --skip-unresolved --command=python3 > snyk_results.json
+          snyk monitor --all-projects --skip-unresolved --command=python3
 
-      - name: 5. Geração do Dashboard HTML (Interface Visual)
+      - name: 6. Geração do Dashboard HTML Funcional
         continue-on-error: true
         run: |
-          # Transforma os dados no dashboard que você precisa mostrar
           snyk-to-html -i snyk_results.json -o dashboard_tcc_final.html
 
-      - name: 6. Scanner de Segurança SAST (Bandit)
+      - name: 7. Scanner SAST (Bandit)
         continue-on-error: true
         run: |
           pip install bandit
           bandit -r . -f html -o relatorio_bandit_tcc.html
 
-      - name: 7. Disponibilizar Evidências para Download
+      - name: 8. Disponibilizar Evidências para Download
         uses: actions/upload-artifact@v4
         with:
           name: Relatorio-Seguranca-TCC
           path: |
             dashboard_tcc_final.html
             relatorio_bandit_tcc.html
-
-      - name: 8. Verificação de Conformidade e Encerramento
-        if: always()
-        run: echo "Análise finalizada. Dashboard disponível nos Artefatos.
