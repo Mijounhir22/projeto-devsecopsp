@@ -1,42 +1,41 @@
-name: Esteira DevSecOps TCC
+name: Auditoria de Bibliotecas
 on: [push]
 
 jobs:
-  auditoria:
+  esteira-tcc:
+    name: Esteira DevSecOps (UNDB)
     runs-on: ubuntu-latest
     steps:
-      - name: 1. Baixando o Código
+      - name: 1. Checkout do Repositorio
         uses: actions/checkout@v4
 
-      - name: 2. Instalando Ferramentas (Snyk e HTML)
+      - name: 2. Configurar Ambiente
         run: |
           npm install -g snyk snyk-to-html
           pip install bandit django==1.11.29 || true
 
-      - name: 3. Scanner Snyk (Análise de Bibliotecas)
+      - name: 3. Scanner Snyk (Busca Automática)
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
-          # Gera o arquivo de dados bruto (JSON)
-          snyk test --json > snyk_results.json
+          # O --all-projects faz o link automático com requirements.txt e package.json
+          snyk test --all-projects --json > snyk_results.json
 
-      - name: 4. Criando o Dashboard Profissional
+      - name: 4. Gerar Dashboard Profissional
         if: always()
         run: |
-          # Transforma o texto bruto no Dashboard colorido que você gosta
-          snyk-to-html -i snyk_results.json -o dashboard_snyk_tcc.html
+          snyk-to-html -i snyk_results.json -o relatorio_visual_snyk.html
 
-      - name: 5. Scanner Bandit (Análise do Código)
+      - name: 5. Scanner Bandit (SAST)
         continue-on-error: true
-        run: |
-          bandit -r . -f html -o relatorio_bandit.html || true
+        run: bandit -r . -f html -o relatorio_bandit_tcc.html || true
 
-      - name: 6. Gerando Link de Download
+      - name: 6. Upload de Artefatos
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Resultados-Seguranca-UNDB
+          name: Evidencias-Seguranca-TCC
           path: |
-            dashboard_snyk_tcc.html
-            relatorio_bandit.html
+            relatorio_visual_snyk.html
+            relatorio_bandit_tcc.html
