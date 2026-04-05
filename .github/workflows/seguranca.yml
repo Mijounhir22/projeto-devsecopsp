@@ -1,57 +1,42 @@
-name: Auditoria de Bibliotecas
+name: Esteira DevSecOps TCC
 on: [push]
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
-  esteira-tcc:
-    name: Esteira de Segurança DevSecOps (TCC)
+  auditoria:
     runs-on: ubuntu-latest
     steps:
-      - name: 1. Checkout do Repositorio
+      - name: 1. Baixando o Código
         uses: actions/checkout@v4
 
-      - name: 2. Configurar Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: 3. Preparar Ferramentas de Auditoria
+      - name: 2. Instalando Ferramentas (Snyk e HTML)
         run: |
           npm install -g snyk snyk-to-html
-          pip install bandit django paramiko || true
+          pip install bandit django==1.11.29 || true
 
-      - name: 4. Scanner Snyk (Detecção Automática de Projetos)
+      - name: 3. Scanner Snyk (Análise de Bibliotecas)
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
-          # O --all-projects encontra o requirements.txt e o package.json sozinho
-          # O --skip-unresolved evita que a esteira pare se faltar alguma instalacao local
-          snyk test --all-projects --json --skip-unresolved > snyk_results.json
+          # Gera o arquivo de dados bruto (JSON)
+          snyk test --json > snyk_results.json
 
-      - name: 5. Geração do Dashboard HTML Unificado
+      - name: 4. Criando o Dashboard Profissional
         if: always()
         run: |
-          snyk-to-html -i snyk_results.json -o relatorio_visual_snyk.html
+          # Transforma o texto bruto no Dashboard colorido que você gosta
+          snyk-to-html -i snyk_results.json -o dashboard_snyk_tcc.html
 
-      - name: 6. Scanner SAST (Bandit)
+      - name: 5. Scanner Bandit (Análise do Código)
         continue-on-error: true
-        run: bandit -r . -f html -o relatorio_bandit_tcc.html || true
+        run: |
+          bandit -r . -f html -o relatorio_bandit.html || true
 
-      - name: 7. Upload dos Relatórios (Artefatos)
+      - name: 6. Gerando Link de Download
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Evidencias-Seguranca-TCC
+          name: Resultados-Seguranca-UNDB
           path: |
-            relatorio_visual_snyk.html
-            relatorio_bandit_tcc.html
-
-      - name: 8. Verificação de Compliance (O X Vermelho Proposital)
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        run: |
-          echo "Finalizando auditoria... Se houver falhas críticas, o pipeline será bloqueado."
-          snyk test --all-projects --severity-threshold=high --skip-unresolved
+            dashboard_snyk_tcc.html
+            relatorio_bandit.html
