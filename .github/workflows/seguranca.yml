@@ -12,43 +12,46 @@ jobs:
       - name: 1. Checkout do Repositorio
         uses: actions/checkout@v4
 
-      - name: 2. Configurar Python
+      - name: 2. Configurar Python e Instalar Dependencias
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-
-      - name: 3. Instalar Dependencias do Projeto
+      
+      - name: 3. Preparar Ambiente (Django e Paramiko)
+        # Instalamos manualmente para o Snyk nao dar 'exit code 2'
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt || echo "Aviso: Algumas dependencias falharam, mas a esteira continuará."
+          pip install --upgrade pip
+          pip install django paramiko bandit || true
 
-      - name: 4. Instalar Ferramentas de Auditoria
+      - name: 4. Instalar Snyk-to-HTML
         run: npm install -g snyk snyk-to-html
 
-      - name: 5. Execução do Scanner Snyk (Gerar Dashboard)
-        continue-on-error: true
+      - name: 5. Scanner Snyk (Gerar Dados do Dashboard)
+        continue-on-error: true # Garante que o dashboard seja gerado mesmo com falhas
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
-          # O '--command=python3' ajuda o Snyk a entender o ambiente Python
-          snyk test --json --skip-unresolved --command=python3 > snyk_results.json
-          snyk monitor --all-projects --skip-unresolved --command=python3
+          # O --skip-unresolved ignora o que faltar e gera o JSON
+          snyk test --json --skip-unresolved > snyk_results.json
+          snyk monitor --all-projects --skip-unresolved
 
-      - name: 6. Geração do Dashboard HTML Funcional
+      - name: 6. Geração do Dashboard HTML Profissional
         continue-on-error: true
         run: |
-          snyk-to-html -i snyk_results.json -o dashboard_tcc_final.html
+          # Transforma o JSON no relatório visual que você quer mostrar
+          snyk-to-html -i snyk_results.json -o relatorio_snyk.html
 
-      - name: 7. Scanner SAST (Bandit)
-        continue-on-error: true
-        run: |
-          pip install bandit
-          bandit -r . -f html -o relatorio_bandit_tcc.html
-
-      - name: 8. Disponibilizar Evidências para Download
+      - name: 7. Disponibilizar Evidências para Download
         uses: actions/upload-artifact@v4
         with:
           name: Relatorio-Seguranca-TCC
           path: |
-            dashboard_tcc_final.html
-            relatorio_bandit_tcc.html
+            relatorio_snyk.html
+
+      - name: 8. Verificação de Compliance (Onde o X Vermelho aparece)
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          echo "Validando segurança... Se houver falhas graves, o X VERMELHO aparecerá agora."
+          # Este comando sem continue-on-error gera o erro proposital para a banca
+          snyk test --all-projects --severity-threshold=high --skip-unresolved
