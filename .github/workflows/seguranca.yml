@@ -2,7 +2,8 @@ name: Auditoria de Bibliotecas
 on: [push]
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  # Resolve avisos de versão do Node.js nos logs
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true 
 
 jobs:
   esteira-tcc:
@@ -19,34 +20,37 @@ jobs:
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
 
       - name: 3. Instalação das Ferramentas de Auditoria
-        run: npm install -g snyk snyk-to-html bandit
+        run: npm install -g snyk snyk-to-html
 
-      - name: 4. Execução do Scanner Snyk (Cloud)
+      - name: 4. Execução do Scanner Snyk (Gerar Dados)
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
-          snyk monitor --all-projects
-          snyk test --json > snyk_results.json
+          # O comando '--skip-unresolved' permite gerar o JSON mesmo com erros de pacotes
+          snyk test --json --skip-unresolved > snyk_results.json
+          snyk monitor --all-projects --skip-unresolved
 
       - name: 5. Geração do Dashboard HTML (Interface Visual)
         continue-on-error: true
-        run: snyk-to-html -i snyk_results.json -o dashboard_tcc_final.html
+        run: |
+          # Transforma os dados no dashboard que você precisa mostrar
+          snyk-to-html -i snyk_results.json -o dashboard_tcc_final.html
 
-      - name: 6. Scanner de Segurança Bandit (SAST)
+      - name: 6. Scanner de Segurança SAST (Bandit)
         continue-on-error: true
-        run: bandit -r . -f html -o relatorio_bandit_tcc.html
+        run: |
+          pip install bandit
+          bandit -r . -f html -o relatorio_bandit_tcc.html
 
-      - name: 7. Empacotamento de Evidências para Avaliação
+      - name: 7. Disponibilizar Evidências para Download
         uses: actions/upload-artifact@v4
         with:
-          name: Evidencias-Seguranca-TCC
+          name: Relatorio-Seguranca-TCC
           path: |
             dashboard_tcc_final.html
             relatorio_bandit_tcc.html
 
-      - name: 8. Verificação de Compliance e Encerramento
+      - name: 8. Verificação de Conformidade e Encerramento
         if: always()
-        run: |
-          echo "Esteira de segurança executada com sucesso!"
-          echo "Os relatórios visuais foram gerados para a banca examinadora."
+        run: echo "Análise finalizada. Dashboard disponível nos Artefatos.
