@@ -2,7 +2,7 @@ name: Auditoria de Bibliotecas
 on: [push]
 
 env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true # Resolve os avisos de Node.js
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   vulnerabilidades:
@@ -21,23 +21,22 @@ jobs:
       - name: 3. Instalar Ferramentas de Relatorio
         run: npm install -g snyk snyk-to-html bandit
 
-      - name: 4. Gerar Relatórios e Link Oficial (Snyk Monitor)
+      - name: 4. Gerar Relatórios e Link Direto (Snyk Monitor)
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
-          # Gera o Link Oficial no site do Snyk
+          # Este comando cria o link que você quer
           snyk monitor --all-projects
-          # Gera os dados para o HTML visual
-          snyk test --json > snyk_results.json
-          # Analisa o código Python com Bandit
+          # Gera o arquivo para o ZIP (caso precise de backup)
+          snyk test --json | snyk-to-html -o relatorio_snyk.html
           bandit -r . -f html -o relatorio_bandit.html
 
       - name: 5. Converter JSON para HTML Visual
         continue-on-error: true
-        run: snyk-to-html -i snyk_results.json -o relatorio_snyk.html
+        run: snyk-to-html -i snyk_results.json -o relatorio_snyk.html || true
 
-      - name: 6. Disponibilizar Relatórios para Download
+      - name: 6. Disponibilizar Relatórios para Download (Formato ZIP)
         uses: actions/upload-artifact@v4
         with:
           name: Relatorio-Seguranca-TCC
@@ -45,17 +44,12 @@ jobs:
             relatorio_snyk.html
             relatorio_bandit.html
 
-      - name: 7. Verificacao Final de Falhas Criticas
+      - name: 7. Status Final e Links Rápidos
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        run: |
-          echo "Validando segurança do projeto ConveFlow..."
-          snyk test --all-projects --severity-threshold=high
+        run: snyk test --all-projects
 
       - name: 8. Limpeza de Ambiente e Log Final
         if: always()
-        run: |
-          echo "Removendo ficheiros temporários..."
-          rm -f snyk_results.json
-          echo "Esteira finalizada com sucesso!"
+        run: echo "Análise concluída. Verifique o link na Etapa 4!"
