@@ -25,11 +25,20 @@ jobs:
       - name: 4. Gerar Dashboard Profissional
         if: always()
         run: |
-          snyk-to-html -i snyk_results.json -o relatorio_visual_snyk.html
+          snyk-to-html -i snyk_results.json -o dashboard_seguranca.html
 
       - name: 5. Scanner Bandit (SAST)
         continue-on-error: true
         run: bandit -r . -f html -o relatorio_bandit_tcc.html || true
+      
+      - name: 6. Upload dos Resultados para Download
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Evidencias-Seguranca-TCC
+          path: |
+            dashboard_seguranca.html
+            relatorio_bandit.html
 
       - name: 6. Upload de Artefatos
         if: always()
