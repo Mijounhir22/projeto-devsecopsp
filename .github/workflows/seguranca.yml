@@ -1,4 +1,9 @@
-name: Esteira DevSecOps UNDB - Sucesso Total
+Aqui está o código definitivo. Ele foi ajustado para ignorar os arquivos de Node.js que estão na pasta backup e focar exclusivamente no seu arquivo requirements.txt que já confirmamos estar salvo corretamente.
+
+Substitua todo o conteúdo do seu arquivo seguranca.yml por este:
+
+YAML
+name: Esteira DevSecOps UNDB - Versao Final v3
 
 on: [push]
 
@@ -9,42 +14,37 @@ jobs:
       - name: 1. Checkout do Repositorio
         uses: actions/checkout@v4
 
-      - name: 2. Instalar Ferramentas
+      - name: 2. Preparar Ambiente e Ferramentas
         run: |
+          # Instala o scanner e o conversor de HTML
           npm install -g snyk snyk-to-html
-          python -m pip install --upgrade pip
+          # Atualiza o pip para evitar erros de instalacao
+          python -m pip install --upgrade pip setuptools wheel
 
-      - name: 3. Criar Projeto Python Fake (Forçar Snyk)
+      - name: 3. Instalar Dependencias (Seu arquivo real)
         run: |
-          # Criamos o manifesto de dependências
-          echo "django==1.11.28" > requirements.txt
-          echo "requests==2.6.0" >> requirements.txt
-          echo "jinja2==2.10.1" >> requirements.txt
-          # Criamos um setup.py básico para o Snyk 'validar' o projeto
-          echo "from setuptools import setup" > setup.py
-          echo "setup(name='projeto-tcc', version='1.0', install_requires=['django==1.11.28'])" >> setup.py
+          # Instalamos o que voce salvou no PC (Django 1.11, etc)
+          # O '|| true' evita que a esteira pare se uma biblioteca for antiga demais
+          pip install -r requirements.txt || true
 
-      - name: 4. Scanner Snyk (Modo de Varredura Profunda)
+      - name: 4. Scanner Snyk (Gerando JSON)
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
-          # Usamos o --command=python3 para ele simular a instalacao e gerar o JSON real
-          snyk test --file=requirements.txt --package-manager=pip --json > snyk_results.json
+          # Forçamos o Snyk a ler apenas o seu requirements.txt
+          # O '|| true' no final e ESSENCIAL para salvar o JSON mesmo com falhas criticas
+          snyk test --file=requirements.txt --package-manager=pip --json > snyk_results.json || true
 
-      - name: 5. Converter JSON para Dashboard Azul
+      - name: 5. Gerar Dashboard Profissional
         if: always()
         run: |
-          # Se o snyk_results.json estiver vazio, este passo falha, entao garantimos que ele exista
-          if [ -s snyk_results.json ]; then
-            snyk-to-html -i snyk_results.json -o dashboard_profissional.html
-          else
-            echo "ERRO: O JSON veio vazio. Verificando Token ou Conexao."
-          fi
+          # Converte o resultado do scanner em uma pagina HTML bonita
+          snyk-to-html -i snyk_results.json -o dashboard_profissional.html
 
-      - name: 6. Upload do Artefato
+      - name: 6. Upload do Relatorio para o Aluno
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Relatorio-Snyk-Final-UNDB
+          name: Relatorio-Snyk-TCC-UNDB
           path: dashboard_profissional.html
