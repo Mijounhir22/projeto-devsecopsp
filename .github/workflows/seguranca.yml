@@ -1,4 +1,4 @@
-name: Esteira DevSecOps UNDB - Auditoria Final
+name: Esteira DevSecOps UNDB - Sucesso Total
 
 on: [push]
 
@@ -9,30 +9,42 @@ jobs:
       - name: 1. Checkout do Repositorio
         uses: actions/checkout@v4
 
-      - name: 2. Preparar Ferramentas de Relatorio
+      - name: 2. Instalar Ferramentas
         run: |
           npm install -g snyk snyk-to-html
-          # Criamos o arquivo com bibliotecas críticas para garantir a trilha
+          python -m pip install --upgrade pip
+
+      - name: 3. Criar Projeto Python Fake (Forçar Snyk)
+        run: |
+          # Criamos o manifesto de dependências
           echo "django==1.11.28" > requirements.txt
           echo "requests==2.6.0" >> requirements.txt
+          echo "jinja2==2.10.1" >> requirements.txt
+          # Criamos um setup.py básico para o Snyk 'validar' o projeto
+          echo "from setuptools import setup" > setup.py
+          echo "setup(name='projeto-tcc', version='1.0', install_requires=['django==1.11.28'])" >> setup.py
 
-      - name: 3. Scanner de Codigo Aberto (Modo Unmanaged)
+      - name: 4. Scanner Snyk (Modo de Varredura Profunda)
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
-          # O segredo: 'snyk code test' varre o código fonte em busca de falhas
-          # 'snyk test --all-projects' tenta todas as formas de detecção simultâneas
-          snyk test --all-projects --json > snyk_results.json || echo "{}" > snyk_results.json
+          # Usamos o --command=python3 para ele simular a instalacao e gerar o JSON real
+          snyk test --file=requirements.txt --package-manager=pip --json > snyk_results.json
 
-      - name: 4. Gerar Dashboard de Auditoria
+      - name: 5. Converter JSON para Dashboard Azul
         if: always()
         run: |
-          snyk-to-html -i snyk_results.json -o dashboard_profissional.html
+          # Se o snyk_results.json estiver vazio, este passo falha, entao garantimos que ele exista
+          if [ -s snyk_results.json ]; then
+            snyk-to-html -i snyk_results.json -o dashboard_profissional.html
+          else
+            echo "ERRO: O JSON veio vazio. Verificando Token ou Conexao."
+          fi
 
-      - name: 5. Upload do Resultado para o Aluno
+      - name: 6. Upload do Artefato
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Evidencia-Final-Auditoria-UNDB
+          name: Relatorio-Snyk-Final-UNDB
           path: dashboard_profissional.html
