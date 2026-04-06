@@ -1,4 +1,4 @@
-name: Esteira DevSecOps UNDB - Sucesso Marco
+name: Esteira DevSecOps UNDB - Sucesso Março
 
 on: [push]
 
@@ -9,30 +9,28 @@ jobs:
       - name: 1. Checkout do Repositorio
         uses: actions/checkout@v4
 
-      - name: 2. Preparar Ambiente e Instalar Dependencias
+      - name: 2. Preparar Ambiente (Forçar Dependências)
         run: |
           npm install -g snyk snyk-to-html
-          python -m pip install --upgrade pip
-          # Forca a instalacao das bibliotecas vulneraveis para o Snyk ler
-          pip install -r requirements.txt || true
+          # Forçamos a instalação para que o Snyk tenha o que ler no ambiente
+          pip install django==1.11.29 requests==2.6.0 bandit || true
 
-      - name: 3. Scanner Snyk (Deteccao Forcada)
+      - name: 3. Scanner Snyk (Busca Total)
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
-          # O comando test agora olha para o ambiente instalado
-          snyk test --json > snyk_results.json || echo "{}" > snyk_results.json
+          # O parâmetro --all-projects varre subpastas e detecta o requirements.txt automaticamente
+          snyk test --all-projects --json > snyk_results.json || echo "{}" > snyk_results.json
 
       - name: 4. Gerar Dashboard Profissional
         if: always()
         run: |
           snyk-to-html -i snyk_results.json -o dashboard_profissional.html
 
-      - name: 5. Scanner Bandit (Analise de Codigo)
+      - name: 5. Scanner Bandit (Análise de Código)
         continue-on-error: true
         run: |
-          pip install bandit
           bandit -r . -f html -o relatorio_bandit.html || true
 
       - name: 6. Upload dos Resultados
@@ -42,4 +40,4 @@ jobs:
           name: Evidencias-Seguranca-TCC
           path: |
             dashboard_profissional.html
-            relatorio_bandit.html
+            relatorio_bandit.htm
