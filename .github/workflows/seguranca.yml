@@ -1,4 +1,4 @@
-name: Esteira DevSecOps UNDB - Versao Final v3
+name: Esteira DevSecOps UNDB - Auditoria Final 2026
 
 on: [push]
 
@@ -9,37 +9,38 @@ jobs:
       - name: 1. Checkout do Repositorio
         uses: actions/checkout@v4
 
-      - name: 2. Preparar Ambiente e Ferramentas
+      - name: 2. Preparar Ferramentas
         run: |
-          # Instala o scanner e o conversor de HTML
           npm install -g snyk snyk-to-html
-          # Atualiza o pip para evitar erros de instalacao
-          python -m pip install --upgrade pip setuptools wheel
+          python -m pip install --upgrade pip
 
-      - name: 3. Instalar Dependencias (Seu arquivo real)
+      - name: 3. Instalar Dependencias Vulneraveis
         run: |
-          # Instalamos o que voce salvou no PC (Django 1.11, etc)
-          # O '|| true' evita que a esteira pare se uma biblioteca for antiga demais
+          # Instalando as versoes que voce deu 'cat' e confirmou
           pip install -r requirements.txt || true
 
-      - name: 4. Scanner Snyk (Gerando JSON)
+      - name: 4. Scanner Snyk (Gerando JSON Real)
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
-          # Forçamos o Snyk a ler apenas o seu requirements.txt
-          # O '|| true' no final e ESSENCIAL para salvar o JSON mesmo com falhas criticas
-          snyk test --file=requirements.txt --package-manager=pip --json > snyk_results.json || true
+          # O segredo: usamos o snyk test e garantimos a saída JSON
+          snyk test --file=requirements.txt --package-manager=pip --json-file-output=snyk_results.json || true
 
-      - name: 5. Gerar Dashboard Profissional
+      - name: 5. Gerar Dashboard do TCC
         if: always()
         run: |
-          # Converte o resultado do scanner em uma pagina HTML bonita
-          snyk-to-html -i snyk_results.json -o dashboard_profissional.html
+          # Verificamos se o arquivo existe e tem conteudo antes de converter
+          if [ -s snyk_results.json ]; then
+            snyk-to-html -i snyk_results.json -o dashboard_profissional.html
+          else
+            echo "ERRO: O scanner nao gerou resultados. Verifique seu SNYK_TOKEN."
+            exit 1
+          fi
 
-      - name: 6. Upload do Relatorio para o Aluno
+      - name: 6. Upload do Artefato para Download
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Relatorio-Snyk-TCC-UNDB
+          name: Relatorio-Seguranca-TCC
           path: dashboard_profissional.html
