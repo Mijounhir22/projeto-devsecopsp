@@ -1,50 +1,43 @@
-name: Auditoria de Bibliotecas
+name: Esteira DevSecOps UNDB - Sucesso Março
+
 on: [push]
 
 jobs:
-  esteira-tcc:
-    name: Esteira DevSecOps (UNDB)
+  auditoria:
     runs-on: ubuntu-latest
     steps:
       - name: 1. Checkout do Repositorio
         uses: actions/checkout@v4
 
-      - name: 2. Configurar Ambiente
+      - name: 2. Preparar Ambiente (O segredo do visual)
         run: |
           npm install -g snyk snyk-to-html
+          # Forçamos a instalação da biblioteca vulnerável para o teste
           pip install bandit django==1.11.29 || true
 
-      - name: 3. Scanner Snyk (Busca Automática)
+      - name: 3. Scanner Snyk (Com as CHAVES protetoras)
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
-          # O --all-projects faz o link automático com requirements.txt e package.json
-          snyk test --all-projects --json > snyk_results.json
+          # O --all-projects faz o link automático com o que estiver na pasta
+          # As chaves garantem que o arquivo JSON sempre exista para o HTML
+          snyk test --all-projects --json > snyk_results.json || echo "{}" > snyk_results.json
 
-      - name: 4. Gerar Dashboard Profissional
+      - name: 4. Gerar Dashboard Profissional (Azul e Branco)
         if: always()
         run: |
-          snyk-to-html -i snyk_results.json -o dashboard_seguranca.html
+          snyk-to-html -i snyk_results.json -o dashboard_profissional.html
 
-      - name: 5. Scanner Bandit (SAST)
+      - name: 5. Scanner SAST (Bandit)
         continue-on-error: true
-        run: bandit -r . -f html -o relatorio_bandit_tcc.html || true
-      
+        run: bandit -r . -f html -o relatorio_bandit.html || true
+
       - name: 6. Upload dos Resultados para Download
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: Evidencias-Seguranca-TCC
           path: |
-            dashboard_seguranca.html
+            dashboard_profissional.html
             relatorio_bandit.html
-
-      - name: 6. Upload de Artefatos
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: Evidencias-Seguranca-TCC
-          path: |
-            relatorio_visual_snyk.html
-            relatorio_bandit_tcc.html
