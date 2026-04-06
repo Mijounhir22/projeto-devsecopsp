@@ -9,29 +9,31 @@ jobs:
       - name: 1. Checkout do Repositorio
         uses: actions/checkout@v4
 
-      - name: 2. Preparar Ambiente e Injetar Dependencias
+      - name: 2. Preparar Ambiente e Forçar Requisitos
         run: |
           npm install -g snyk snyk-to-html
           python -m pip install --upgrade pip
-          # Criamos o arquivo na hora para garantir que o Snyk encontre as falhas
-          # Você pode adicionar mais bibliotecas aqui para mostrar mais erros à banca
+          # Criamos o arquivo aqui para garantir que ele exista na raiz do servidor
           echo "django==1.11.29" > requirements.txt
           echo "requests==2.6.0" >> requirements.txt
-          echo "jinja2==2.4" >> requirements.txt
           pip install -r requirements.txt || true
 
-      - name: 3. Scanner Snyk (Gerando Dashboard Azul)
+      - name: 3. Scanner Snyk (Foco Total em Python)
         continue-on-error: true
         env:
-          # Certifique-se de que o nome no GitHub Secrets seja exatamente SNYK_TOKEN
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
-          # O comando testa o arquivo e ja converte para o HTML visual do TCC
-          snyk test --file=requirements.txt --package-manager=pip --json | snyk-to-html -o dashboard_profissional.html
+          # O comando --file e --package-manager sao a chave do sucesso
+          snyk test --file=requirements.txt --package-manager=pip --json > snyk_results.json || echo "{}" > snyk_results.json
 
-      - name: 4. Upload do Relatorio para Download
+      - name: 4. Gerar Dashboard Azul do TCC
+        if: always()
+        run: |
+          snyk-to-html -i snyk_results.json -o dashboard_profissional.html
+
+      - name: 5. Upload dos Resultados
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Relatorio-Snyk-UNDB
+          name: Evidencias-Seguranca-TCC
           path: dashboard_profissional.html
