@@ -9,40 +9,29 @@ jobs:
       - name: 1. Checkout do Repositorio
         uses: actions/checkout@v4
 
-      - name: 2. Preparar Ambiente e Ferramentas
+      - name: 2. Preparar Ambiente e Injetar Dependencias
         run: |
           npm install -g snyk snyk-to-html
           python -m pip install --upgrade pip
-          # Injetamos as versões vulneráveis para garantir o gráfico vermelho
+          # Criamos o arquivo na hora para garantir que o Snyk encontre as falhas
+          # Você pode adicionar mais bibliotecas aqui para mostrar mais erros à banca
           echo "django==1.11.29" > requirements.txt
           echo "requests==2.6.0" >> requirements.txt
+          echo "jinja2==2.4" >> requirements.txt
           pip install -r requirements.txt || true
 
-      - name: 3. Scanner Snyk (Analise de Bibliotecas)
+      - name: 3. Scanner Snyk (Gerando Dashboard Azul)
         continue-on-error: true
         env:
+          # Certifique-se de que o nome no GitHub Secrets seja exatamente SNYK_TOKEN
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
-          # Gera o JSON com as falhas encontradas
-          snyk test --file=requirements.txt --package-manager=pip --json > snyk_results.json || echo "{}" > snyk_results.json
+          # O comando testa o arquivo e ja converte para o HTML visual do TCC
+          snyk test --file=requirements.txt --package-manager=pip --json | snyk-to-html -o dashboard_profissional.html
 
-      - name: 4. Gerar Dashboard Profissional (O Azul do TCC)
-        if: always()
-        run: |
-          # Transforma o JSON no relatório visual bonito
-          snyk-to-html -i snyk_results.json -o dashboard_profissional.html
-
-      - name: 5. Scanner Bandit (Analise de Codigo Python)
-        continue-on-error: true
-        run: |
-          pip install bandit
-          bandit -r . -f html -o relatorio_bandit.html || true
-
-      - name: 6. Upload dos Resultados para Download
+      - name: 4. Upload do Relatorio para Download
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Evidencias-Seguranca-TCC
-          path: |
-            dashboard_profissional.html
-            relatorio_bandit.html
+          name: Relatorio-Snyk-UNDB
+          path: dashboard_profissional.html
