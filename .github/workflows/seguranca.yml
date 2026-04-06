@@ -1,8 +1,3 @@
-Aqui está o código definitivo. Ele foi ajustado para ignorar os arquivos de Node.js que estão na pasta backup e focar exclusivamente no seu arquivo requirements.txt que já confirmamos estar salvo corretamente.
-
-Substitua todo o conteúdo do seu arquivo seguranca.yml por este:
-
-YAML
 name: Esteira DevSecOps UNDB - Versao Final v3
 
 on: [push]
