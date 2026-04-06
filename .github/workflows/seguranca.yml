@@ -9,29 +9,31 @@ jobs:
       - name: 1. Checkout do Repositorio
         uses: actions/checkout@v4
 
-      - name: 2. Preparar Ambiente (O segredo do visual)
+      - name: 2. Preparar Ambiente (Python e Ferramentas)
         run: |
           npm install -g snyk snyk-to-html
-          # Forçamos a instalação da biblioteca vulnerável para o teste
-          pip install bandit django==1.11.29 || true
+          # Garante que o Django vulnerável seja instalado para o Bandit e Snyk detectarem
+          pip install bandit django==1.11.29 requests==2.6.0 || true
 
-      - name: 3. Scanner Snyk (Com as CHAVES protetoras)
+      - name: 3. Scanner Snyk (Forçando detecção do requirements.txt)
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
-          # O --all-projects faz o link automático com o que estiver na pasta
-          # As chaves garantem que o arquivo JSON sempre exista para o HTML
-          snyk test --all-projects --json > snyk_results.json || echo "{}" > snyk_results.json
+          # Apontamos diretamente para o arquivo para evitar "0 vulnerabilidades"
+          snyk test --file=requirements.txt --package-manager=pip --json > snyk_results.json || echo "{}" > snyk_results.json
 
       - name: 4. Gerar Dashboard Profissional (Azul e Branco)
         if: always()
         run: |
+          # Transforma o JSON no relatório visual do TCC
           snyk-to-html -i snyk_results.json -o dashboard_profissional.html
 
-      - name: 5. Scanner SAST (Bandit)
+      - name: 5. Scanner SAST (Bandit - Análise de Código)
         continue-on-error: true
-        run: bandit -r . -f html -o relatorio_bandit.html || true
+        run: |
+          # Analisa as falhas de segurança no seu código Python
+          bandit -r . -f html -o relatorio_bandit.html || true
 
       - name: 6. Upload dos Resultados para Download
         if: always()
