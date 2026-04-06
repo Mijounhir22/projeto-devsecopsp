@@ -1,4 +1,4 @@
-name: Esteira DevSecOps UNDB - Sucesso Marco
+name: Esteira DevSecOps UNDB - Auditoria Final
 
 on: [push]
 
@@ -9,34 +9,30 @@ jobs:
       - name: 1. Checkout do Repositorio
         uses: actions/checkout@v4
 
-      - name: 2. Preparar Ambiente e Injetar Dependencias
+      - name: 2. Preparar Ferramentas de Relatorio
         run: |
           npm install -g snyk snyk-to-html
-          python -m pip install --upgrade pip setuptools wheel
-          # Usaremos versoes que instalam mas continuam vulneraveis
-          echo "django==2.2" > requirements.txt
-          echo "requests==2.20.0" >> requirements.txt
-          echo "jinja2==2.11.2" >> requirements.txt
-          # O '|| true' garante que a esteira continue mesmo com aviso de erro
-          pip install -r requirements.txt || true
+          # Criamos o arquivo com bibliotecas críticas para garantir a trilha
+          echo "django==1.11.28" > requirements.txt
+          echo "requests==2.6.0" >> requirements.txt
 
-      - name: 3. Scanner Snyk (Foco em Python)
+      - name: 3. Scanner de Codigo Aberto (Modo Unmanaged)
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
-          # Adicionamos a flag --package-manager=pip e --file=requirements.txt
-          # O comando 'snyk monitor' ajuda o Snyk a mapear melhor as dependencias
-          snyk test --file=requirements.txt --package-manager=pip --json > snyk_results.json || echo "{}" > snyk_results.json
-          
-      - name: 4. Gerar Dashboard do TCC
+          # O segredo: 'snyk code test' varre o código fonte em busca de falhas
+          # 'snyk test --all-projects' tenta todas as formas de detecção simultâneas
+          snyk test --all-projects --json > snyk_results.json || echo "{}" > snyk_results.json
+
+      - name: 4. Gerar Dashboard de Auditoria
         if: always()
         run: |
           snyk-to-html -i snyk_results.json -o dashboard_profissional.html
 
-      - name: 5. Upload do Resultado
+      - name: 5. Upload do Resultado para o Aluno
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Relatorio-Snyk-Final
+          name: Evidencia-Final-Auditoria-UNDB
           path: dashboard_profissional.html
