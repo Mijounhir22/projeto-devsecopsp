@@ -25,9 +25,10 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
-          # Forçamos o Snyk a ler apenas o arquivo de requisitos
+          # Adicionamos a flag --package-manager=pip e --file=requirements.txt
+          # O comando 'snyk monitor' ajuda o Snyk a mapear melhor as dependencias
           snyk test --file=requirements.txt --package-manager=pip --json > snyk_results.json || echo "{}" > snyk_results.json
-
+          
       - name: 4. Gerar Dashboard do TCC
         if: always()
         run: |
