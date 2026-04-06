@@ -9,33 +9,31 @@ jobs:
       - name: 1. Checkout do Repositorio
         uses: actions/checkout@v4
 
-      - name: 2. Preparar Ambiente (Python e Ferramentas)
+      - name: 2. Preparar Ambiente
         run: |
           npm install -g snyk snyk-to-html
-          # Garante que o Django vulnerável seja instalado para o Bandit e Snyk detectarem
-          pip install bandit django==1.11.29 requests==2.6.0 || true
+          # Garante que as bibliotecas vulneraveis existam no ambiente da esteira
+          pip install django==1.11.29 requests==2.6.0 bandit || true
 
-      - name: 3. Scanner Snyk (Forçando detecção do requirements.txt)
+      - name: 3. Scanner Snyk (Forçar Leitura de Arquivos)
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
-          # Apontamos diretamente para o arquivo para evitar "0 vulnerabilidades"
-          snyk test --file=requirements.txt --package-manager=pip --json > snyk_results.json || echo "{}" > snyk_results.json
+          # Varre todos os manifestos encontrados para garantir que as 26 falhas apareçam
+          snyk test --all-projects --json > snyk_results.json || echo "{}" > snyk_results.json
 
-      - name: 4. Gerar Dashboard Profissional (Azul e Branco)
+      - name: 4. Gerar Dashboard Profissional
         if: always()
         run: |
-          # Transforma o JSON no relatório visual do TCC
+          # Transforma o resultado no HTML visual para o TCC
           snyk-to-html -i snyk_results.json -o dashboard_profissional.html
 
-      - name: 5. Scanner SAST (Bandit - Análise de Código)
+      - name: 5. Scanner Bandit (Analise de Codigo)
         continue-on-error: true
-        run: |
-          # Analisa as falhas de segurança no seu código Python
-          bandit -r . -f html -o relatorio_bandit.html || true
+        run: bandit -r . -f html -o relatorio_bandit.html || true
 
-      - name: 6. Upload dos Resultados para Download
+      - name: 6. Upload dos Resultados
         if: always()
         uses: actions/upload-artifact@v4
         with:
