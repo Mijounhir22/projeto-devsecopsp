@@ -12,29 +12,30 @@ jobs:
       - name: 2. Preparar Ambiente e Injetar Dependencias
         run: |
           npm install -g snyk snyk-to-html
-          python -m pip install --upgrade pip
-          # Criamos o arquivo na raiz do servidor para garantir que o Snyk o encontre
-          echo "django==1.11.29" > requirements.txt
-          echo "requests==2.6.0" >> requirements.txt
-          echo "jinja2==2.4" >> requirements.txt
+          python -m pip install --upgrade pip setuptools wheel
+          # Usaremos versoes que instalam mas continuam vulneraveis
+          echo "django==2.2" > requirements.txt
+          echo "requests==2.20.0" >> requirements.txt
+          echo "jinja2==2.11.2" >> requirements.txt
+          # O '|| true' garante que a esteira continue mesmo com aviso de erro
           pip install -r requirements.txt || true
 
-      - name: 3. Scanner Snyk (Foco Exclusivo em Python)
+      - name: 3. Scanner Snyk (Foco em Python)
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
-          # O comando abaixo ignora a pasta backup e foca no arquivo que criamos
+          # Forçamos o Snyk a ler apenas o arquivo de requisitos
           snyk test --file=requirements.txt --package-manager=pip --json > snyk_results.json || echo "{}" > snyk_results.json
 
-      - name: 4. Gerar Dashboard Profissional
+      - name: 4. Gerar Dashboard do TCC
         if: always()
         run: |
           snyk-to-html -i snyk_results.json -o dashboard_profissional.html
 
-      - name: 5. Upload do Resultado Final
+      - name: 5. Upload do Resultado
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Relatorio-Snyk-TCC
+          name: Relatorio-Snyk-Final
           path: dashboard_profissional.html
